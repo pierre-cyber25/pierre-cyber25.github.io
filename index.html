@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Caisse Stand</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f0; color: #1a1a1a; min-height: 100vh; }
+    #app { max-width: 480px; margin: 0 auto; padding: 16px; }
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* Header */
+    .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .header h1 { font-size: 20px; font-weight: 600; }
+    .icon-btn { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 8px 14px; cursor: pointer; font-size: 14px; color: #555; }
+    .icon-btn:hover { background: #f0f0f0; }
+
+    /* Articles */
+    .articles-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 16px; }
+    .article-btn { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 16px 10px; cursor: pointer; text-align: center; transition: transform 0.1s; }
+    .article-btn:active { transform: scale(0.96); background: #f5f5f5; }
+    .article-btn .name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .article-btn .price { font-size: 13px; color: #777; }
+
+    /* Panier */
+    .panier { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 14px; margin-bottom: 14px; min-height: 80px; }
+    .panier-empty { font-size: 13px; color: #aaa; text-align: center; padding: 16px 0; }
+    .panier-line { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #f0f0f0; }
+    .panier-line:last-child { border-bottom: none; }
+    .line-left { display: flex; align-items: center; gap: 8px; }
+    .qty-btn { background: #f5f5f5; border: 1px solid #ddd; border-radius: 7px; width: 28px; height: 28px; cursor: pointer; font-size: 18px; color: #333; display: flex; align-items: center; justify-content: center; line-height: 1; }
+    .qty-btn:active { background: #e0e0e0; }
+    .qty-label { font-size: 15px; font-weight: 600; min-width: 22px; text-align: center; }
+    .line-name { font-size: 14px; }
+    .line-total { font-size: 14px; font-weight: 600; }
+
+    /* Total */
+    .total-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding: 0 2px; }
+    .total-label { font-size: 16px; color: #555; }
+    .total-amount { font-size: 30px; font-weight: 700; }
+
+    /* Paiement */
+    .pay-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+    .pay-btn { border: 1px solid #ddd; border-radius: 14px; padding: 14px; cursor: pointer; text-align: center; font-size: 15px; font-weight: 600; background: #fff; color: #333; transition: background 0.1s; }
+    .pay-btn:hover { background: #f5f5f5; }
+    .pay-btn.selected { border: 2px solid #2563eb; color: #2563eb; background: #eff6ff; }
+
+    /* Rendu monnaie */
+    .rendu-box { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 14px; margin-bottom: 12px; }
+    .rendu-label { font-size: 13px; color: #777; margin-bottom: 8px; }
+    .rendu-input-row { display: flex; align-items: center; gap: 10px; }
+    .rendu-input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 18px; font-weight: 600; background: #f9f9f9; color: #1a1a1a; }
+    .rendu-input:focus { outline: none; border-color: #2563eb; background: #fff; }
+    .montant-rapide { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .rapide-btn { border: 1px solid #ddd; border-radius: 8px; padding: 7px 14px; cursor: pointer; font-size: 14px; font-weight: 600; background: #f5f5f5; color: #333; }
+    .rapide-btn:active { background: #e0e0e0; }
+    .rendu-result { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px solid #f0f0f0; }
+    .rendu-result-label { font-size: 15px; color: #555; }
+    .rendu-result-amount { font-size: 26px; font-weight: 700; color: #16a34a; }
+    .rendu-result-amount.negatif { color: #dc2626; }
+
+    /* Boutons action */
+    .valider-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 17px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #fff; margin-bottom: 10px; transition: opacity 0.15s; }
+    .valider-btn:disabled { opacity: 0.25; cursor: default; }
+    .valider-btn:not(:disabled):active { opacity: 0.8; }
+    .annuler-btn { width: 100%; padding: 12px; border-radius: 14px; border: 1px solid #ddd; font-size: 14px; cursor: pointer; background: #fff; color: #777; }
+    .annuler-btn:hover { background: #f5f5f5; }
+
+    /* Confirmation */
+    .confirm-box { text-align: center; padding: 40px 20px; }
+    .confirm-icon { font-size: 64px; margin-bottom: 16px; }
+    .confirm-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+    .confirm-sub { font-size: 15px; color: #777; margin-bottom: 6px; }
+    .confirm-rendu { font-size: 22px; font-weight: 700; color: #16a34a; margin-bottom: 32px; }
+    .new-btn { width: 100%; padding: 16px; border-radius: 14px; border: none; font-size: 17px; font-weight: 700; cursor: pointer; background: #1a1a1a; color: #fff; }
+
+    /* Paramètres */
+    .section-title { font-size: 12px; font-weight: 600; color: #999; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.07em; }
+    .param-item { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e0e0e0; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .param-name { font-size: 15px; font-weight: 600; }
+    .param-price { font-size: 13px; color: #777; margin-top: 2px; }
+    .del-btn { background: none; border: none; cursor: pointer; font-size: 18px; color: #ccc; padding: 4px 8px; }
+    .del-btn:hover { color: #dc2626; }
+    .add-form { background: #fff; border: 1px solid #e0e0e0; border-radius: 14px; padding: 16px; margin-top: 16px; }
+    .add-form-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+    .add-form input { width: 100%; margin-bottom: 10px; padding: 11px 14px; border: 1px solid #ddd; border-radius: 10px; font-size: 15px; background: #f9f9f9; color: #1a1a1a; }
+    .add-form input:focus { outline: none; border-color: #2563eb; background: #fff; }
+    .add-submit { width: 100%; padding: 12px; border-radius: 10px; border: none; background: #1a1a1a; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; }
+    .add-submit:active { opacity: 0.8; }
+    .back-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: #2563eb; background: none; border: none; cursor: pointer; margin-bottom: 16px; padding: 0; font-weight: 500; }
+    .empty-menu { font-size: 13px; color: #aaa; text-align: center; padding: 20px 0; }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- VUE CAISSE -->
+  <div class="view active" id="view-caisse">
+    <div class="header">
+      <h1>&#x1F354; Caisse</h1>
+      <button class="icon-btn" onclick="showParams()">&#9881; Param&egrave;tres</button>
+    </div>
+    <div class="articles-grid" id="articles-grid"></div>
+    <div class="panier" id="panier">
+      <div class="panier-empty">Appuyez sur un article pour l'ajouter</div>
+    </div>
+    <div class="total-row">
+      <span class="total-label">Total</span>
+      <span class="total-amount" id="total">0,00 &euro;</span>
+    </div>
+    <div class="pay-btns">
+      <button class="pay-btn" id="btn-especes" onclick="selectPay('especes')">&#128176; Esp&egrave;ces</button>
+      <button class="pay-btn" id="btn-carte" onclick="selectPay('carte')">&#128179; Carte</button>
+    </div>
+    <div class="rendu-box" id="rendu-box" style="display:none;">
+      <div class="rendu-label">Somme remise par le client</div>
+      <div class="rendu-input-row">
+        <input class="rendu-input" type="number" id="remise-input" placeholder="0,00" min="0" step="0.01" oninput="calcRendu()" />
+        <span style="font-size:18px;color:#777;">&euro;</span>
+      </div>
+      <div class="montant-rapide" id="montants-rapides"></div>
+      <div class="rendu-result" id="rendu-result" style="display:none;">
+        <span class="rendu-result-label">Rendu monnaie</span>
+        <span class="rendu-result-amount" id="rendu-amount">0,00 &euro;</span>
+      </div>
+    </div>
+    <button class="valider-btn" id="valider-btn" disabled onclick="valider()">Valider l'encaissement</button>
+    <button class="annuler-btn" onclick="annuler()">Annuler la commande</button>
+  </div>
+
+  <!-- VUE CONFIRMATION -->
+  <div class="view" id="view-confirm">
+    <div class="confirm-box">
+      <div class="confirm-icon">&#10003;</div>
+      <div class="confirm-title" id="confirm-title"></div>
+      <div class="confirm-sub" id="confirm-sub"></div>
+      <div class="confirm-rendu" id="confirm-rendu"></div>
+      <button class="new-btn" onclick="nouvelleCommande()">Nouvelle commande</button>
+    </div>
+  </div>
+
+  <!-- VUE PARAMÈTRES -->
+  <div class="view" id="view-params">
+    <button class="back-btn" onclick="showCaisse()">&#8592; Retour &agrave; la caisse</button>
+    <div class="header" style="margin-bottom:20px;">
+      <h1>&#9881; Param&egrave;tres</h1>
+    </div>
+    <div class="section-title">Articles du menu</div>
+    <div id="param-list"></div>
+    <div class="add-form">
+      <div class="add-form-title">Ajouter un article</div>
+      <input type="text" id="new-name" placeholder="Nom de l'article" />
+      <input type="number" id="new-price" placeholder="Prix (ex: 3.50)" step="0.01" min="0" />
+      <button class="add-submit" onclick="addArticle()">Ajouter</button>
+    </div>
+  </div>
+
+</div>
+<script>
+  var STORAGE_KEY = 'caisse_articles';
+
+  var DEFAULT_ARTICLES = [
+    { id: 1, name: 'Hot-dog', price: 3.50 },
+    { id: 2, name: 'Frites', price: 2.00 },
+    { id: 3, name: 'Coca', price: 1.50 },
+    { id: 4, name: 'Eau', price: 1.00 }
+  ];
+
+  function loadArticles() {
+    try {
+      var stored = localStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : DEFAULT_ARTICLES;
+    } catch(e) { return DEFAULT_ARTICLES; }
+  }
+
+  function saveArticles() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(articles)); } catch(e) {}
+  }
+
+  var articles = loadArticles();
+  var panier = {};
+  var modePay = null;
+
+  function fmt(n) { return n.toFixed(2).replace('.', ',') + ' \u20ac'; }
+
+  function calcTotal() {
+    return Object.keys(panier).reduce(function(sum, id) {
+      var a = articles.find(function(x) { return x.id == id; });
+      return a ? sum + a.price * panier[id] : sum;
+    }, 0);
+  }
+
+  function renderGrid() {
+    var grid = document.getElementById('articles-grid');
+    if (articles.length === 0) {
+      grid.innerHTML = '<div class="empty-menu" style="grid-column:span 2">Aucun article &mdash; ajoutez-en dans les param&egrave;tres</div>';
+      return;
+    }
+    grid.innerHTML = articles.map(function(a) {
+      return '<button class="article-btn" onclick="addToPanier(' + a.id + ')">'
+        + '<div class="name">' + a.name + '</div>'
+        + '<div class="price">' + fmt(a.price) + '</div>'
+        + '</button>';
+    }).join('');
+  }
+
+  function renderPanier() {
+    var el = document.getElementById('panier');
+    var keys = Object.keys(panier);
+    if (keys.length === 0) {
+      el.innerHTML = '<div class="panier-empty">Appuyez sur un article pour l\'ajouter</div>';
+    } else {
+      el.innerHTML = keys.map(function(id) {
+        var a = articles.find(function(x) { return x.id == id; });
+        if (!a) return '';
+        var q = panier[id];
+        return '<div class="panier-line">'
+          + '<div class="line-left">'
+          + '<button class="qty-btn" onclick="changeQty(' + id + ', -1)">&minus;</button>'
+          + '<span class="qty-label">' + q + '</span>'
+          + '<button class="qty-btn" onclick="changeQty(' + id + ', 1)">+</button>'
+          + '<span class="line-name">' + a.name + '</span>'
+          + '</div>'
+          + '<span class="line-total">' + fmt(a.price * q) + '</span>'
+          + '</div>';
+      }).join('');
+    }
+    document.getElementById('total').textContent = fmt(calcTotal());
+    updateRenduRapide();
+    updateValiderBtn();
+  }
+
+  function updateRenduRapide() {
+    var total = calcTotal();
+    var paliers = [5, 10, 20, 50];
+    var boutons = paliers.filter(function(p) { return p >= total; });
+    document.getElementById('montants-rapides').innerHTML = boutons.slice(0, 4).map(function(p) {
+      return '<button class="rapide-btn" onclick="setRemise(' + p + ')">' + p + ' \u20ac</button>';
+    }).join('');
+  }
+
+  function setRemise(val) {
+    document.getElementById('remise-input').value = val.toFixed(2);
+    calcRendu();
+  }
+
+  function calcRendu() {
+    var total = calcTotal();
+    var remise = parseFloat(document.getElementById('remise-input').value) || 0;
+    var rendu = remise - total;
+    var resultEl = document.getElementById('rendu-result');
+    var amountEl = document.getElementById('rendu-amount');
+    if (remise > 0) {
+      resultEl.style.display = 'flex';
+      if (rendu < 0) {
+        amountEl.className = 'rendu-result-amount negatif';
+        amountEl.textContent = '\u2212 ' + fmt(Math.abs(rendu));
+      } else {
+        amountEl.className = 'rendu-result-amount';
+        amountEl.textContent = fmt(rendu);
+      }
+    } else {
+      resultEl.style.display = 'none';
+    }
+    updateValiderBtn();
+  }
+
+  function updateValiderBtn() {
+    var btn = document.getElementById('valider-btn');
+    var hasItems = Object.keys(panier).length > 0;
+    var payOk = false;
+    if (modePay === 'carte') payOk = true;
+    if (modePay === 'especes') {
+      var remise = parseFloat(document.getElementById('remise-input').value) || 0;
+      payOk = remise >= calcTotal();
+    }
+    btn.disabled = !(hasItems && payOk);
+  }
+
+  function addToPanier(id) {
+    panier[id] = (panier[id] || 0) + 1;
+    renderPanier();
+    if (modePay === 'especes') calcRendu();
+  }
+
+  function changeQty(id, delta) {
+    panier[id] = (panier[id] || 0) + delta;
+    if (panier[id] <= 0) delete panier[id];
+    renderPanier();
+    if (modePay === 'especes') calcRendu();
+  }
+
+  function selectPay(mode) {
+    modePay = mode;
+    document.getElementById('btn-especes').classList.toggle('selected', mode === 'especes');
+    document.getElementById('btn-carte').classList.toggle('selected', mode === 'carte');
+    document.getElementById('rendu-box').style.display = mode === 'especes' ? 'block' : 'none';
+    if (mode === 'especes') { updateRenduRapide(); calcRendu(); }
+    updateValiderBtn();
+  }
+
+  function valider() {
+    var total = calcTotal();
+    document.getElementById('confirm-title').textContent = fmt(total) + ' encaiss\u00e9';
+    if (modePay === 'especes') {
+      var remise = parseFloat(document.getElementById('remise-input').value) || 0;
+      document.getElementById('confirm-sub').textContent = 'Esp\u00e8ces \u2014 remis\u00a0: ' + fmt(remise);
+      document.getElementById('confirm-rendu').textContent = 'Rendu\u00a0: ' + fmt(remise - total);
+    } else {
+      document.getElementById('confirm-sub').textContent = 'Carte bancaire';
+      document.getElementById('confirm-rendu').textContent = '';
+    }
+    showView('view-confirm');
+  }
+
+  function annuler() {
+    panier = {};
+    modePay = null;
+    document.getElementById('btn-especes').classList.remove('selected');
+    document.getElementById('btn-carte').classList.remove('selected');
+    document.getElementById('rendu-box').style.display = 'none';
+    document.getElementById('remise-input').value = '';
+    document.getElementById('rendu-result').style.display = 'none';
+    renderPanier();
+  }
+
+  function nouvelleCommande() { annuler(); showView('view-caisse'); }
+
+  function showView(id) {
+    document.querySelectorAll('.view').forEach(function(v) { v.classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+  }
+
+  function showParams() { renderParamList(); showView('view-params'); }
+
+  function showCaisse() { renderGrid(); showView('view-caisse'); }
+
+  function renderParamList() {
+    var el = document.getElementById('param-list');
+    if (articles.length === 0) {
+      el.innerHTML = '<div class="empty-menu">Aucun article pour l\'instant</div>';
+      return;
+    }
+    el.innerHTML = articles.map(function(a) {
+      return '<div class="param-item">'
+        + '<div><div class="param-name">' + a.name + '</div><div class="param-price">' + fmt(a.price) + '</div></div>'
+        + '<button class="del-btn" onclick="deleteArticle(' + a.id + ')">\u2715</button>'
+        + '</div>';
+    }).join('');
+  }
+
+  function deleteArticle(id) {
+    articles = articles.filter(function(a) { return a.id !== id; });
+    saveArticles();
+    renderParamList();
+  }
+
+  function addArticle() {
+    var name = document.getElementById('new-name').value.trim();
+    var price = parseFloat(document.getElementById('new-price').value);
+    if (!name || isNaN(price) || price <= 0) return;
+    articles.push({ id: Date.now(), name: name, price: price });
+    saveArticles();
+    document.getElementById('new-name').value = '';
+    document.getElementById('new-price').value = '';
+    renderParamList();
+  }
+
+  renderGrid();
+  renderPanier();
+</script>
+</body>
+</html>
